@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ovozli xabar: Halqa</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#DDD6F3;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+
+/* Telefon ramkasi */
+.phone{width:300px;height:520px;background:#EFEAFB;color:#231A4A;border:1px solid rgba(127,127,127,.25);border-radius:30px;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+.hd{display:flex;gap:10px;align-items:center;padding:14px 16px;background:#fff;border-bottom:1px solid rgba(127,127,127,.25)}
+.av{width:34px;height:34px;border-radius:50%;background:#6B4EE6;color:#fff;display:grid;place-items:center;font-weight:600}
+.hd b{display:block;line-height:1.2}
+.hd small{color:#7C72A8;font-size:12px}
+.msgs{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:14px 12px}
+
+/* Xabar pufagi */
+.b{max-width:90%;padding:10px 18px 6px 10px;border-radius:22px}
+.r{align-self:flex-start;background:#fff;color:#231A4A;border-bottom-left-radius:5px;--ring:#6B4EE6;--track:#DDD5FA;--inner:#fff}
+.s{align-self:flex-end;background:#6B4EE6;color:#fff;border-bottom-right-radius:5px;--ring:#fff;--track:rgba(255,255,255,.3);--inner:#6B4EE6}
+
+/* Ijro qatori */
+.vm{display:flex;align-items:center;gap:12px;min-width:130px}
+
+/* Halqa: --p (0 dan 1 gacha) JS orqali yangilanadi */
+.pb{position:relative;width:52px;height:52px;border:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:none;color:var(--ring);
+    background:conic-gradient(var(--ring) calc(var(--p,0)*360deg),var(--track) 0)}
+.pb::before{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--inner)}
+.pb svg{position:relative}
+
+.t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.t small{display:block;font-size:12px;font-weight:400;opacity:.7}
+
+.meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;opacity:.8;margin-top:2px}
+.sp{border:0;background:rgba(127,127,127,.2);color:inherit;border-radius:9px;font:inherit;padding:1px 7px;cursor:pointer}
+
+/* Yozish paneli */
+.cp{background:#fff;border-top:1px solid rgba(127,127,127,.25);padding:12px;min-height:68px;display:flex;align-items:center;gap:10px}
+.dot{width:10px;height:10px;border-radius:50%;background:#E5484D;flex:none;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.tm{font-weight:600;font-size:15px;min-width:36px;font-variant-numeric:tabular-nums}
+.hint{flex:1;font-size:12.5px;color:#7C72A8;display:flex;align-items:center;gap:2px}
+.mic{width:54px;height:54px;margin:-6px -2px -6px 0;border:0;border-radius:50%;display:grid;place-items:center;background:#E5484D;color:#fff;flex:none;
+     box-shadow:0 0 0 8px rgba(229,72,77,.2)}
+
+button:focus-visible{outline:2px solid #6B4EE6;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="hd">
+    <div class="av">D</div>
+    <div><b>Dilnoza</b><small>onlayn</small></div>
+  </div>
+
+  <div class="msgs">
+    <!-- Qabul qilingan xabar: data-dur = davomiyligi (soniya), data-p = boshlang'ich progress (0..1) -->
+    <div class="b r">
+      <div class="vm" data-dur="14" data-p="0">
+        <button class="pb" aria-label="Ijro etish"></button>
+        <span class="t"></span>
+      </div>
+      <div class="meta"><button class="sp">1×</button><span>10:42</span></div>
+    </div>
+
+    <!-- Yuborilgan xabar -->
+    <div class="b s">
+      <div class="vm" data-dur="38" data-p="0.4">
+        <button class="pb" aria-label="Ijro etish"></button>
+        <span class="t"></span>
+      </div>
+      <div class="meta"><button class="sp">1×</button><span>10:44</span></div>
+    </div>
+  </div>
+
+  <div class="cp">
+    <span class="dot"></span>
+    <span class="tm">0:07</span>
+    <span class="hint" id="hint"></span>
+    <button class="mic" id="mic" aria-label="Yozilmoqda"></button>
+  </div>
+</div>
+
+<script>
+// Ikonkalar
+const ICONS = {
+  mic:   '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  play:  '<path d="M8 5v14l11-7z" fill="currentColor"/>',
+  pause: '<path d="M8 5v14M16 5v14" stroke-width="3"/>',
+  left:  '<path d="M15 6l-6 6 6 6"/>'
+};
+const icon = n => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+const fmt  = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+document.getElementById('mic').innerHTML  = icon('mic');
+document.getElementById('hint').innerHTML = icon('left') + 'Bekor qilish uchun suring';
+
+// Har bir ovozli xabar uchun ijro mantig'i
+document.querySelectorAll('.vm').forEach(vm => {
+  const dur = +vm.dataset.dur;
+  const btn = vm.querySelector('.pb');
+  const label = vm.querySelector('.t');
+  const speedBtn = vm.parentElement.querySelector('.sp');
+
+  let p = +vm.dataset.p * dur;   // hozirgi vaqt (soniya)
+  let speed = 1;
+  let timer = null;
+
+  const draw = () => {
+    vm.style.setProperty('--p', p / dur);                       // halqa to'lishi
+    label.innerHTML = '<small>Ovozli xabar</small>' + fmt(p > 0 ? p : dur);
+  };
+  const stop = () => { clearInterval(timer); timer = null; btn.innerHTML = icon('play'); };
+
+  btn.onclick = () => {
+    if (timer) { stop(); return; }
+    btn.innerHTML = icon('pause');
+    timer = setInterval(() => {
+      p += 0.1 * speed;
+      if (p >= dur) { p = 0; stop(); }
+      draw();
+    }, 100);
+  };
+
+  speedBtn.onclick = () => {
+    speed = speed === 1 ? 1.5 : speed === 1.5 ? 2 : 1;
+    speedBtn.textContent = speed + '×';
+  };
+
+  btn.innerHTML = icon('play');
+  draw();
+});
+
+// Yozish paneli taymeri (ko'rinish uchun)
+if (!matchMedia('(prefers-reduced-motion:reduce)').matches) {
+  let s = 7;
+  setInterval(() => { s = (s + 1) % 60; document.querySelector('.tm').textContent = fmt(s); }, 1000);
+}
+</script>
+</body>
+</html>
